@@ -11,6 +11,7 @@
 #include "../../Utils/StaticFile.h"
 #include "../Logger/Logger.h"
 #include "WebServer.h"
+#include "Components/Statistics/Statistics.h"
 
 // Static files
 #include "../../../data/headers/blueberry.svg.h"
@@ -58,42 +59,56 @@ void WebServer::Init()
 
     // Required
     gWebServer.on("/connecttest.txt", [](AsyncWebServerRequest *request)
-                  { request->redirect("http://logout.net"); }); // windows 11 captive portal workaround
+                  { request->redirect("http://logout.net");
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS;}); // windows 11 captive portal workaround
     gWebServer.on("/wpad.dat", [](AsyncWebServerRequest *request)
-                  { request->send(404); }); // Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
+                  { request->send(404);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
 
     // Background responses: Probably not all are Required, but some are. Others might speed things up?
     // A Tier (commonly used by modern systems)
     gWebServer.on("/generate_204", [](AsyncWebServerRequest *request)
-                  { request->redirect(Constants::WebServer::LocalIpUrl); }); // android captive portal redirect
+                  { request->redirect(Constants::WebServer::LocalIpUrl);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // android captive portal redirect
     gWebServer.on("/redirect", [](AsyncWebServerRequest *request)
-                  { request->redirect(Constants::WebServer::LocalIpUrl); }); // microsoft redirect
+                  { request->redirect(Constants::WebServer::LocalIpUrl);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // microsoft redirect
     gWebServer.on("/hotspot-detect.html", [](AsyncWebServerRequest *request)
-                  { request->redirect(Constants::WebServer::LocalIpUrl); }); // apple call home
+                  { request->redirect(Constants::WebServer::LocalIpUrl);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // apple call home
     gWebServer.on("/canonical.html", [](AsyncWebServerRequest *request)
-                  { request->redirect(Constants::WebServer::LocalIpUrl); }); // firefox captive portal call home
+                  { request->redirect(Constants::WebServer::LocalIpUrl);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // firefox captive portal call home
     gWebServer.on("/success.txt", [](AsyncWebServerRequest *request)
-                  { request->send(200); }); // firefox captive portal call home
+                  { request->send(200);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // firefox captive portal call home
     gWebServer.on("/ncsi.txt", [](AsyncWebServerRequest *request)
-                  { request->redirect(Constants::WebServer::LocalIpUrl); }); // windows call home
+                  { request->redirect(Constants::WebServer::LocalIpUrl);
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; }); // windows call home
 
     // Handle API requests
     gWebServer.on("/api/version", HTTP_GET, [this](AsyncWebServerRequest *request)
-                  { request->send(200, "application/json", HandleApiRequestGetVersion()); });
+                  { request->send(200, "application/json", HandleApiRequestGetVersion());
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; });
     gWebServer.on("/api/wifi_scan_start", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { request->send(200, "application/json", HandleApiRequestStartWifiScan()); });
+                  { request->send(200, "application/json", HandleApiRequestStartWifiScan());
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; });
     gWebServer.on("/api/wifi_scan_status", HTTP_GET, [this](AsyncWebServerRequest *request)
-                  { request->send(200, "application/json", HandleApiRequestGetWifiScanStatus()); });
+                  { request->send(200, "application/json", HandleApiRequestGetWifiScanStatus());
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; });
     gWebServer.on("/api/settings_read", HTTP_GET, [this](AsyncWebServerRequest *request)
-                  { request->send(200, "application/json", HandleApiRequestSettingsRead(request)); });
+                  { request->send(200, "application/json", HandleApiRequestSettingsRead(request));
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; });
     gWebServer.onRequestBody([this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
                              {
                     if (request->url() == "/api/settings_write") {
                         request->send(200, "application/json", HandleApiRequestSettingsWrite(request, data));
-                    } });
+                    } 
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; });
 
-    gWebServer.on("/api/reboot", HTTP_POST, [this](AsyncWebServerRequest *request)
-                  { request->send(200, "application/json", HandleApiRequestReboot()); });
+    gWebServer.on("/api/reboot", HTTP_ANY, [this](AsyncWebServerRequest *request)
+                  { request->send(200, "application/json", HandleApiRequestReboot());
+                    gStatistics.lastHttpRequest = gStatistics.UptimeS; });
     gWebServer.on(
         "/api/update", HTTP_POST,
         [this](AsyncWebServerRequest *request)
@@ -114,7 +129,8 @@ void WebServer::Init()
             if (!HandleFirmwareUpload(request, filename, index, data, len, final))
             {
                 request->send(500, "application/json", R"({"status": "error", "message": "Upload handler failed"})");
-            }
+            } 
+            gStatistics.lastHttpRequest = gStatistics.UptimeS;
         });
 
     // handle 404 errors
@@ -126,7 +142,8 @@ void WebServer::Init()
                             Logger::Debug(" > Content type: %s", request->contentType().c_str());
                             Logger::Debug(" > Content length: %d", request->contentLength());
                             Logger::Debug(" > Query string: %s", request->url().c_str());
-                            request->send(404, "text/plain", "This resource does not exist"); });
+                            request->send(404, "text/plain", "This resource does not exist"); 
+                            gStatistics.lastHttpRequest = gStatistics.UptimeS; });
 
     // Serve static files
     for (StaticFile file : staticFiles)
@@ -309,3 +326,4 @@ bool WebServer::HadActivity()
 {
     return mHadActivity;
 }
+

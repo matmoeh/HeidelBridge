@@ -67,6 +67,7 @@ bool ModbusRTU::ReadRegisters(uint16_t startAddress, uint8_t numValues, uint8_t 
                 {
                     response.get(startIndex + wordIndex * Constants::ModbusRTU::RegisterSize, values[wordIndex]);
                 }
+                gStatistics.lastModbusRead = gStatistics.UptimeS;
                 return true;
             }
             else
@@ -112,6 +113,7 @@ bool ModbusRTU::WriteHoldRegister16(uint16_t address, uint16_t value)
 
             if (response.getError() == SUCCESS)
             {
+                gStatistics.lastModbusWrite = gStatistics.UptimeS;
                 return true;
             }
             else

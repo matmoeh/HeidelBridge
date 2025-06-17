@@ -18,6 +18,9 @@ IWallbox *gWallbox{nullptr};
 AsyncDelay gUptimeCounter(Constants::General::MillisPerSecond);
 AsyncDelay gMqttUpdater(Constants::MQTT::PublishIntervalMs);
 
+
+
+
 void setup()
 {
   // Configure serial communication
@@ -78,6 +81,7 @@ void loop()
   {
     gUptimeCounter.Restart();
     gStatistics.UptimeS++;
+    gStatistics.freeHeap = ESP.getFreeHeap();
   }
 
   if (Settings::Instance()->IsMqttEnabled && gMqttUpdater.IsElapsed())

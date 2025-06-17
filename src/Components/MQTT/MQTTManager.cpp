@@ -92,6 +92,11 @@ namespace MQTTManager
         PublishHomeAssistantDiscoveryTopic(
             "homeassistant/sensor/%/temperature/config",
             R"({"name":"Temperature","device_class":"temperature","state_topic":"%/temperature","unique_id":"%_temperature","object_id":"temperature","unit_of_measurement":"°C","device":{"identifiers":["%"],"name":"%","model":"EnergyControl","manufacturer":"Heidelberg"}})");
+
+        /*PublishHomeAssistantDiscoveryTopic(
+            "homeassistant/sensor/%/wifirssi/config",
+            R"({"name":"wifirssi","device_class":"signal_strength","state_topic":"%/wifi_rssi","unique_id":"%_wifirssi","object_id":"wifirssi","unit_of_measurement":"dBm","device":{"identifiers":["%"],"name":"%","model":"EnergyControl","sw_version":"%","configuration_url": "http://%","manufacturer":"Heidelberg"}})");
+            */
     }
 
     // Publishes various MQTT status messages based on the current value index.
@@ -159,10 +164,18 @@ namespace MQTTManager
                 break;
 
             case (MqttPublishedValues::Internals):
-                gMqttClient.publish(gMqttTopic.SetString("/internal/wifi_disconnects"), 0, false, String(gStatistics.NumWifiDisconnects).c_str());
-                gMqttClient.publish(gMqttTopic.SetString("/internal/mqtt_disconnects"), 0, false, String(gStatistics.NumMqttDisconnects).c_str());
-                gMqttClient.publish(gMqttTopic.SetString("/internal/modbus_read_errors"), 0, false, String(gStatistics.NumModbusReadErrors).c_str());
-                gMqttClient.publish(gMqttTopic.SetString("/internal/modbus_write_errors"), 0, false, String(gStatistics.NumModbusWriteErrors).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/wifi_disconnects"), 0, true, String(gStatistics.NumWifiDisconnects).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/mqtt_disconnects"), 0, true, String(gStatistics.NumMqttDisconnects).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/modbus_read_errors"), 0, true, String(gStatistics.NumModbusReadErrors).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/modbus_write_errors"), 0, true, String(gStatistics.NumModbusWriteErrors).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/freeheap"), 0, true, String(gStatistics.freeHeap).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/lastHttpRequest"), 0, true, String(gStatistics.lastHttpRequest).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/lastModbusRead"), 0, true, String(gStatistics.lastModbusRead).c_str());
+                gMqttClient.publish(gMqttTopic.SetString("/internal/lastModbusWrite"), 0, true, String(gStatistics.lastModbusWrite).c_str());
+                
+                payload = String(gStatistics.WifiRSSI);
+                gMqttClient.publish(gMqttTopic.SetString("/internal/wifi_rssi"), 0, true, payload.c_str());
+                gStatistics.freeHeap = ESP.getFreeHeap();
                 break;
 
             case (MqttPublishedValues::Discovery):
@@ -174,7 +187,9 @@ namespace MQTTManager
             gCurValueIndex = (gCurValueIndex + 1) % NumMqttPublishedValues;
 
             // These values are published every cycle
-            gMqttClient.publish(gMqttTopic.SetString("/internal/uptime"), 0, false, String(gStatistics.UptimeS).c_str());
+            gMqttClient.publish(gMqttTopic.SetString("/internal/uptime"), 0, true, String(gStatistics.UptimeS).c_str());
+
+            esp_task_wdt_reset();
         }
     }
 
