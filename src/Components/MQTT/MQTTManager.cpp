@@ -15,6 +15,7 @@ extern "C"
 #include "../../Utils/PrefixedString.h"
 #include "../../Utils/StringUtils.h"
 #include "MQTTManager.h"
+#include <esp_task_wdt.h>
 
 namespace MQTTManager
 {
@@ -105,6 +106,8 @@ namespace MQTTManager
     // are periodically updated and sent to the MQTT broker for monitoring and control purposes.
     void PublishStatusMessages()
     {
+        String payload;
+
         if (gMqttClient.connected())
         {
             switch (gCurValueIndex)
